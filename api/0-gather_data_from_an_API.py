@@ -1,54 +1,57 @@
 #!/usr/bin/python3
 """
-    python script that returns TODO list progress for a given employee ID
+This module fetches and displays the TODO list progress for a given employee ID
+using a REST API.
 """
-import json
 import requests
-from sys import argv
+import sys
+
+
+def get_employee_todo_progress(employee_id):
+    """
+    Fetches the TODO list progress for a given employee ID from the REST API.
+
+    Args:
+        employee_id (int): The ID of the employee.
+
+    Prints:
+        The employee name, number of completed tasks, total number of tasks,
+        and the titles of the completed tasks.
+    """
+    url = "https://jsonplaceholder.typicode.com"
+
+    # Fetch employee data
+    employee_response = requests.get(f"{url}/users/{employee_id}")
+    if employee_response.status_code != 200:
+        print("Employee not found.")
+        return
+
+    employee = employee_response.json()
+    employee_name = employee.get('name')
+
+    # Fetch TODO list data for the employee
+    todo_response = requests.get(f"{url}/todos?userId={employee_id}")
+    todos = todo_response.json()
+
+    # Filter tasks
+    done_tasks = [todo for todo in todos if todo.get('completed')]
+    total_tasks = len(todos)
+    done_tasks_count = len(done_tasks)
+
+    # Print the required output
+    print(f"Employee {employee_name} is done with tasks("
+          f"{done_tasks_count}/{total_tasks}):")
+    # Print completed task titles
+    for task in done_tasks:
+        print(f"\t {task.get('title')}")
 
 
 if __name__ == "__main__":
-    """
-        request user info by employee ID
-    """
-    request_employee = requests.get(
-        'https://jsonplaceholder.typicode.com/users/{}/'.format(argv[1]))
-    """
-        convert json to dictionary
-    """
-    employee = json.loads(request_employee.text)
-    """
-        extract employee name
-    """
-    employee_name = employee.get("name")
-
-    """
-        request user's TODO list
-    """
-    request_todos = requests.get(
-        'https://jsonplaceholder.typicode.com/users/{}/todos'.format(argv[1]))
-    """
-        dictionary to store task status in boolean format
-    """
-    tasks = {}
-    """
-        convert json to list of dictionaries
-    """
-    employee_todos = json.loads(request_todos.text)
-    """
-        loop through dictionary & get completed tasks
-    """
-    for dictionary in employee_todos:
-        tasks.update({dictionary.get("title"): dictionary.get("completed")})
-
-    """
-        return name, total number of tasks & completed tasks
-    """
-    EMPLOYEE_NAME = employee_name
-    TOTAL_NUMBER_OF_TASKS = len(tasks)
-    NUMBER_OF_DONE_TASKS = len([k for k, v in tasks.items() if v is True])
-    print("Employee {} is done with tasks({}/{}):".format(
-        EMPLOYEE_NAME, NUMBER_OF_DONE_TASKS, TOTAL_NUMBER_OF_TASKS))
-    for k, v in tasks.items():
-        if v is True:
-            print("\t {}".format(k))
+    if len(sys.argv) < 2:
+        print("Usage: python3 0-gather_data_from_an_API.py <employee_id>")
+    else:
+        try:
+            employee_id = int(sys.argv[1])
+            get_employee_todo_progress(employee_id)
+        except ValueError:
+            print("Employee ID must be an integer.")
